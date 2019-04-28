@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Net(nn.Module):
-    
+
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 6, 5)
@@ -19,7 +19,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(16 * 5 * 5, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
-        
+
     def forward(self, x):
         x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
         print("after conv1: ", x.size())
@@ -33,7 +33,7 @@ class Net(nn.Module):
         print("after fc2: ", x.size())
         x = self.fc3(x)
         return x
-    
+
     def num_flat_features(self, x):
         size = x.size()[1:]
         num_features = 1
@@ -45,8 +45,8 @@ class Net(nn.Module):
 net = Net()
 print(net)
 params = list(net.parameters())
-print(len(params))        
-    
+print(len(params))
+
 input_data = torch.randn(1, 1, 32, 32)
 
 output = net(input_data)
@@ -69,7 +69,7 @@ print(net.conv1.bias.grad)
 learning_rate = 0.01
 for f in net.parameters():
     f.data.sub_(f.grad.data * learning_rate)
-    
+
 import torch.optim as optim
 optimizer = optim.SGD(net.parameters(), lr=0.001)
 
