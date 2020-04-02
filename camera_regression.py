@@ -7,6 +7,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 
@@ -19,19 +20,19 @@ K = np.array([[250, 0, 300],
               [0, 255, 250],
               [0.0, 0.0, 1.0]])
 
-uvs = K @ pts
-uvs_n = uvs / uvs[2, :]
+
+pts_n = pts / pts[2, :] # on the image plane (z=1)
+uvs = K @ pts_n
 
 
 
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        self.lin = nn.Linear(3, 3, bias=False)
+        self.K = nn.Linear(3, 3, bias=False)
         
     def forward(self, x):
-        x_n = x / x[:, 2].view((-1, 1))
-        return self.lin(x_n)
+        return self.K(x)
     
     
     
@@ -47,38 +48,44 @@ def MyLoss(x, y):
 
 
 network = Network()
-optimizer = torch.optim.Adam(network.parameters(), lr=0.1, weight_decay=0.0001)
+optimizer = torch.optim.SGD(network.parameters(), lr=1)
 
 loss_fn = MyLoss
 
-nn.init.uniform_(network.lin.weight)
+# nn.init.uniform_(network.lin.weight)
 
-network.lin.weight.data[2, 2] = 1.0
-network.lin.weight.data[1, 0] = 0.0
-network.lin.weight.data[2, 0] = 0.0
-network.lin.weight.data[2, 1] = 0.0
+# network.K.weight.data[0, 0] = 100.0
+# network.K.weight.data[0, 1] = 0.0
+# network.K.weight.data[0, 2] = 50.0
+# network.K.weight.data[1, 0] = 0.0
+# network.K.weight.data[1, 1] = 100.0
+# network.K.weight.data[1, 2] = 50.0
+# network.K.weight.data[2, 0] = 0.0
+# network.K.weight.data[2, 1] = 0.0
+# network.K.weight.data[2, 2] = 0.0
+
+
 
 temp_results = []
 
-for i in range(20000):
-    x = torch.Tensor(pts.T)
-    y = torch.Tensor(uvs_n.T)
+for i in range(10000):
+    x = torch.Tensor(pts_n.T)
+    y = torch.Tensor(uvs.T)
     
     output = network(x)
     
-    loss = loss_fn(output, y)
-    
     optimizer.zero_grad()
+    
+    loss = F.mse_loss(output, y)
+    
     loss.backward()
     optimizer.step()
     
     print(loss.item())
     if i % 50 == 0:
-        temp_results.append(network.lin.weight.detach().numpy().copy())
-
+        temp_results.append(network.K.weight.detach().numpy().copy())
     
-K_est = network.lin.weight.detach().numpy()
-#K_est /= K_est[2, 2]
+K_est = network.K.weight.detach().numpy()
 
 temp_results.append(K_est)
 
@@ -90,9 +97,8 @@ import matplotlib.pyplot as plt
 
 for i in range(len(temp_results)):
     K_est = temp_results[i]
-    outputs = K_est @ pts
-    outputs /= outputs[2, :]
-    plt.scatter(uvs_n[0, :], uvs_n[1, :], c='r')
+    outputs = K_est @ pts_n
+    plt.scatter(uvs[0, :], uvs[1, :], c='r')
     plt.scatter(outputs[0, :], outputs[1, :], marker='+', c='b')
     plt.savefig("output/result_optim_%05d.png" % i)
     plt.close()
