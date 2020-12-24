@@ -111,12 +111,17 @@ else:
 
 
 #%% Testing
+model.eval()
 
-def gridify(img):
+def gridify(img, size=None):
     """
         Transform a [m*m, H, W] image into a grid of m x m images.
+        size: nb images concatenated horizontally and vertically
     """
-    m = int(np.sqrt(test_batch_size))
+    if size is None:
+        m = int(np.sqrt(img.shape[0]))
+    else:
+        m = size
     res = []
     for i in range(m):
         images = []
@@ -126,7 +131,7 @@ def gridify(img):
     res = np.vstack(res)
     return res
 
-
+# import matplotlib.pyplot as plt
 # with torch.no_grad():
 #     for i, (X, _) in enumerate(test_loader):
 #         flat_X = X.reshape((-1, n_features)).to(device)
@@ -159,11 +164,10 @@ for i in range(10):
     data[i] = np.vstack(data[i])
 
 
-# Distance matrix
+# ------- Distance matrix -------
 def dists_to(x, y):
-    return np.sqrt(np.sum((x-y)**2, axis=1))
-    # return np.divide(y.dot(x) / (np.linalg.norm(x)), np.linalg.norm(y, axis=1))
-
+    return np.sqrt(np.sum((x-y)**2, axis=1))    # Euclidean distance
+    # return np.divide(y.dot(x) / (np.linalg.norm(x)), np.linalg.norm(y, axis=1))   # cos similarity
 m = np.zeros((10, 10))
 N = 100
 for x in range(10):
@@ -177,7 +181,7 @@ for x in range(10):
         m[y][x] = avg
 
 
-# T-sne
+# ------- T-sne -------
 from sklearn.manifold import TSNE
 
 N = 300
