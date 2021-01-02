@@ -82,7 +82,8 @@ class AutoEncoder(nn.Module):
         latent = self.encoder(x)
         rec = self.decoder(latent)
         return {"rec":rec, "latent":latent}
-
+    def decode(self, x):
+        return self.decoder(x)
 #%% Training
 device = torch.device("cuda")
 model = AutoEncoder().to(device)
@@ -90,7 +91,7 @@ loss_fn = nn.MSELoss().to(device)
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 PATH = "trained_weigths.pth"
-train = True
+train = False
 
 if train:
     losses = []
@@ -163,35 +164,47 @@ with torch.no_grad():
 for i in range(10):
     data[i] = np.vstack(data[i])
 
+#%% Decode modified latent code
+import matplotlib.pyplot as plt
+with torch.no_grad():
+    code = data[7][17, :]
+    code[0] *= 2
+    code = data[7][:10, :].sum(axis=0)
+    code = data[7].mean(axis=0)
+    code = torch.Tensor(code).unsqueeze(0)
+    out = model.decode(code.to(device))
+    img = out.cpu().numpy().squeeze().reshape((28, 28))
+    plt.imshow(img)
 
-# ------- Distance matrix -------
-def dists_to(x, y):
-    return np.sqrt(np.sum((x-y)**2, axis=1))    # Euclidean distance
-    # return np.divide(y.dot(x) / (np.linalg.norm(x)), np.linalg.norm(y, axis=1))   # cos similarity
-m = np.zeros((10, 10))
-N = 100
-for x in range(10):
-    print(x)
-    for y in range(x, 10):
-        tot = 0
-        for xx in data[x][:N, :]:
-            tot += np.sum(dists_to(xx, data[y][:N, :]))
-        avg = tot / (N*N)
-        m[x][y] = avg
-        m[y][x] = avg
+#%%
+# # ------- Distance matrix -------
+# def dists_to(x, y):
+#     return np.sqrt(np.sum((x-y)**2, axis=1))    # Euclidean distance
+#     # return np.divide(y.dot(x) / (np.linalg.norm(x)), np.linalg.norm(y, axis=1))   # cos similarity
+# m = np.zeros((10, 10))
+# N = 100
+# for x in range(10):
+#     print(x)
+#     for y in range(x, 10):
+#         tot = 0
+#         for xx in data[x][:N, :]:
+#             tot += np.sum(dists_to(xx, data[y][:N, :]))
+#         avg = tot / (N*N)
+#         m[x][y] = avg
+#         m[y][x] = avg
 
 
-# ------- T-sne -------
-from sklearn.manifold import TSNE
+# # ------- T-sne -------
+# from sklearn.manifold import TSNE
 
-N = 300
-dataset = np.vstack([data[i][:N, :] for i in range(10)])
-labels = []
-for i in range(10):
-    labels += [i] * N
+# N = 300
+# dataset = np.vstack([data[i][:N, :] for i in range(10)])
+# labels = []
+# for i in range(10):
+#     labels += [i] * N
 
-tsne = TSNE(n_components=2, verbose=True, n_jobs=16, init="pca")
-tsne_results = tsne.fit_transform(dataset)
+# tsne = TSNE(n_components=2, verbose=True, n_jobs=16, init="pca")
+# tsne_results = tsne.fit_transform(dataset)
 
-import seaborn as sns
-sns.scatterplot(tsne_results[:, 0], tsne_results[:, 1], palette=sns.color_palette("hls", 10), hue=labels)
+# import seaborn as sns
+# sns.scatterplot(tsne_results[:, 0], tsne_results[:, 1], palette=sns.color_palette("hls", 10), hue=labels)
