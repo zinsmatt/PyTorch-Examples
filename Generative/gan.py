@@ -137,27 +137,36 @@ discriminator = Discriminator().to(device)
 
 optimizer_gen = optim.Adam(generator.parameters(), lr=lr_gen)
 optimizer_disc = optim.Adam(discriminator.parameters(), lr=lr_disc)
+train = True
+PATH_GEN = "trained_weigths_generator.pth"
+PATH_DISC = "trained_weigths_discriminator.pth"
 
 
-n_epochs = 20
-for e in range(n_epochs):
-    for i, (X, Y) in enumerate(train_loader):
-        noise = torch.rand((X.shape[0], noise_dim), device=device) * 2 - 1
+if train:
+    n_epochs = 20
+    for e in range(n_epochs):
+        for i, (X, Y) in enumerate(train_loader):
+            noise = torch.rand((X.shape[0], noise_dim), device=device) * 2 - 1
 
-        optimizer_gen.zero_grad()
-        gen = generator(noise)
-        loss_gen = -torch.mean(torch.log(discriminator(gen)))
-        loss_gen.backward()
-        optimizer_gen.step()
+            optimizer_gen.zero_grad()
+            gen = generator(noise)
+            loss_gen = -torch.mean(torch.log(discriminator(gen)))
+            loss_gen.backward()
+            optimizer_gen.step()
 
-        optimizer_disc.zero_grad()
-        disc_real = discriminator(X.to(device))
-        disc_fake = discriminator(gen.detach())
-        loss_disc = -torch.mean(torch.log(disc_real) + torch.log(1.0 - disc_fake))
-        loss_total = loss_gen + loss_disc
-        loss_disc.backward()
-        optimizer_disc.step()
-    print("epoch %d Loss generator %.4f Loss discriminator %.4f Loss total %.4f" % (e, loss_gen, loss_disc, loss_total))
+            optimizer_disc.zero_grad()
+            disc_real = discriminator(X.to(device))
+            disc_fake = discriminator(gen.detach())
+            loss_disc = -torch.mean(torch.log(disc_real) + torch.log(1.0 - disc_fake))
+            loss_total = loss_gen + loss_disc
+            loss_disc.backward()
+            optimizer_disc.step()
+        print("epoch %d Loss generator %.4f Loss discriminator %.4f Loss total %.4f" % (e, loss_gen, loss_disc, loss_total))
+    torch.save(generator.state_dict(), PATH_GEN)
+    torch.save(discriminator.state_dict(), PATH_DISC)
+else:
+    generator.load_state_dict(torch.load(PATH_GEN))
+    discriminator.load_state_dict(torch.load(PATH_DISC))
 
 
 
@@ -193,5 +202,6 @@ with torch.no_grad():
         gen_viz = gridify(gen)
         plt.imshow(gen_viz)
 
-        plt.waitforbuttonpress()
-        plt.close("all")
+        plt.savefig("out_gan/out_%04d.png" % i)
+        # plt.waitforbuttonpress()
+        # plt.close("all")

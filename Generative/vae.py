@@ -19,9 +19,9 @@ import matplotlib.pyplot as plt
 
 
 n_features = 28*28
-lr = 0.008
-n_epochs = 100
-batch_size = 256
+lr = 0.004
+n_epochs = 30
+batch_size = 128
 test_batch_size = 16
 display_steps = 1000
 
@@ -106,10 +106,9 @@ model = AutoEncoder().to(device)
 loss_fn = nn.MSELoss().to(device)
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
-PATH = "trained_weigths.pth"
+PATH = "trained_weigths_vae.pth"
 train = True
 
-model.load_state_dict(torch.load(PATH))
 
 if train:
     losses = []
@@ -124,7 +123,7 @@ if train:
             pred_distrib = torch.distributions.normal.Normal(means, vars)
 
             kl = kl_div_normal(means, torch.log(vars))
-            loss = loss_fn(flat_X, out["rec"]) + 0.008 * kl
+            loss = loss_fn(flat_X, out["rec"]) + 0.006 * kl
             losses.append(loss.item())
             loss.backward()
             optimizer.step()
@@ -188,7 +187,7 @@ for i in range(10):
     data[i] = np.vstack(data[i])
 
 import seaborn as sns
-N = 350
+N = 700
 vals = np.vstack(data[i][:N, :] for i in range(10))
 labels = []
 for i in range(10):
@@ -197,8 +196,10 @@ for i in range(10):
 
 
 #%% Display latent space and generate new images
+index = 0
 def generate_form_z(code):
     model.eval()
+    global index
     with torch.no_grad():
         z = code
         z = torch.Tensor(z).unsqueeze(0).cuda()
@@ -208,6 +209,8 @@ def generate_form_z(code):
         plt.imshow(img)
         plt.show()
         plt.draw()
+        plt.savefig("out_vae/out_%04d.png" % index)
+        index += 1
 
 
 def onclick(event):

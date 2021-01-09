@@ -12,7 +12,7 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 import torch.optim as optim
-
+import cv2
 import numpy as np
 
 
@@ -90,7 +90,7 @@ model = AutoEncoder().to(device)
 loss_fn = nn.MSELoss().to(device)
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
-PATH = "trained_weigths.pth"
+PATH = "trained_weigths_ae.pth"
 train = False
 
 if train:
@@ -132,7 +132,7 @@ def gridify(img, size=None):
     res = np.vstack(res)
     return res
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # with torch.no_grad():
 #     for i, (X, _) in enumerate(test_loader):
 #         flat_X = X.reshape((-1, n_features)).to(device)
@@ -145,7 +145,7 @@ def gridify(img, size=None):
 #         rec_viz = gridify(rec)
 #         plt.figure("rec")
 #         plt.imshow(rec_viz)
-
+#         plt.savefig("out_ae/out_%04d.png" % i)
 #         plt.waitforbuttonpress()
 #         plt.close("all")
 
@@ -165,16 +165,16 @@ for i in range(10):
     data[i] = np.vstack(data[i])
 
 #%% Decode modified latent code
-import matplotlib.pyplot as plt
-with torch.no_grad():
-    code = data[7][17, :]
-    code[0] *= 2
-    code = data[7][:10, :].sum(axis=0)
-    code = data[7].mean(axis=0)
-    code = torch.Tensor(code).unsqueeze(0)
-    out = model.decode(code.to(device))
-    img = out.cpu().numpy().squeeze().reshape((28, 28))
-    plt.imshow(img)
+# import matplotlib.pyplot as plt
+# with torch.no_grad():
+#     code = data[7][17, :]
+#     code[0] *= 2
+#     code = data[7][:10, :].sum(axis=0)
+#     code = data[7].mean(axis=0)
+#     code = torch.Tensor(code).unsqueeze(0)
+#     out = model.decode(code.to(device))
+#     img = out.cpu().numpy().squeeze().reshape((28, 28))
+#     plt.imshow(img)
 
 #%%
 # # ------- Distance matrix -------
@@ -194,17 +194,18 @@ with torch.no_grad():
 #         m[y][x] = avg
 
 
-# # ------- T-sne -------
-# from sklearn.manifold import TSNE
+# ------- T-sne -------
+from sklearn.manifold import TSNE
 
-# N = 300
-# dataset = np.vstack([data[i][:N, :] for i in range(10)])
-# labels = []
-# for i in range(10):
-#     labels += [i] * N
+N = 300
+dataset = np.vstack([data[i][:N, :] for i in range(10)])
+labels = []
+for i in range(10):
+    labels += [i] * N
 
-# tsne = TSNE(n_components=2, verbose=True, n_jobs=16, init="pca")
-# tsne_results = tsne.fit_transform(dataset)
+tsne = TSNE(n_components=2, verbose=True, n_jobs=16, init="pca")
+tsne_results = tsne.fit_transform(dataset)
 
-# import seaborn as sns
-# sns.scatterplot(tsne_results[:, 0], tsne_results[:, 1], palette=sns.color_palette("hls", 10), hue=labels)
+import seaborn as sns
+sns.scatterplot(tsne_results[:, 0], tsne_results[:, 1], palette=sns.color_palette("hls", 10), hue=labels)
+sns.savefig("out_ae/t-sne.png")
